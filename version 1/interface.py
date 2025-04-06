@@ -2,28 +2,28 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from graph import *
+from graph import * 
 
-def CreateGraph_1 ():
+def CreateGraph_1():
     G = Graph()
-    AddNode(G, Node("A",1,20))
-    AddNode(G, Node("B",8,17))
-    AddNode(G, Node("C",15,20))
-    AddNode(G, Node("D",18,15))
-    AddNode(G, Node("E",2,4))
-    AddNode(G, Node("F",6,5))
-    AddNode(G, Node("G",12,12))
-    AddNode(G, Node("H",10,3))
-    AddNode(G, Node("I",19,1))
-    AddNode(G, Node("J",13,5))
-    AddNode(G, Node("K",3,15))
-    AddNode(G, Node("L",4,10))
-    AddSegment(G, "AB","A","B")
-    AddSegment(G, "AE","A","E")
-    AddSegment(G, "AK","A","K")
-    AddSegment(G, "BA","B","A")
-    AddSegment(G, "BC","B","C")
-    AddSegment(G, "BF","B","F")
+    AddNode(G, Node("A", 1, 20))
+    AddNode(G, Node("B", 8, 17))
+    AddNode(G, Node("C", 15, 20))
+    AddNode(G, Node("D", 18, 15))
+    AddNode(G, Node("E", 2, 4))
+    AddNode(G, Node("F", 6, 5))
+    AddNode(G, Node("G", 12, 12))
+    AddNode(G, Node("H", 10, 3))
+    AddNode(G, Node("I", 19, 1))
+    AddNode(G, Node("J", 13, 5))
+    AddNode(G, Node("K", 3, 15))
+    AddNode(G, Node("L", 4, 10))
+    AddSegment(G, "AB", "A", "B")
+    AddSegment(G, "AE", "A", "E")
+    AddSegment(G, "AK", "A", "K")
+    AddSegment(G, "BA", "B", "A")
+    AddSegment(G, "BC", "B", "C")
+    AddSegment(G, "BF", "B", "F")
     AddSegment(G, "BK", "B", "K")
     AddSegment(G, "BG", "B", "G")
     AddSegment(G, "CD", "C", "D")
@@ -48,97 +48,102 @@ def CreateGraph_1 ():
 window = tk.Tk()
 window.title("Graph Viewer")
 
-actual = None
+button_frame = tk.Frame(window)
+button_frame.pack(side="top", fill="x", pady=10)
+
+graph_frame = tk.Frame(window)
+graph_frame.pack(side="top", fill="both", expand=True)
+
+selected_node = None
 
 def esconder():
-    global actual
-    if actual:
-        actual.get_tk_widget().destroy()
+    for widget in graph_frame.winfo_children():
+        widget.destroy()
+
+def on_click(event, g):
+    global selected_node
+    x, y = event.xdata, event.ydata
+    if x is None or y is None:
+        return
+
+    closest_node = GetClosest(g, x, y)
+    if closest_node:
+        selected_node = closest_node
+        messagebox.showinfo("Nodo Seleccionado", f"Has seleccionado el nodo: {selected_node.name}")
+    else:
+        messagebox.showwarning("Advertencia", "No se ha seleccionado un nodo válido.")
+
+def show_neighbors():
+    if not selected_node:
+        messagebox.showwarning("Advertencia", "No se ha seleccionado un nodo.")
+        return
+
+    neighbors = selected_node.neighbors
+    new_graph = Graph()
+    AddNode(new_graph, selected_node)
+    for neighbor in neighbors:
+        AddNode(new_graph, neighbor)
+        AddSegment(new_graph, f"{selected_node.name}{neighbor.name}", selected_node.name, neighbor.name)
+
+    esconder() 
+    fig, ax = plt.subplots(figsize=(5, 5))
+    Plot(new_graph)
+    ax.set_title(f"Vecinos de {selected_node.name}")
+
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.get_tk_widget().pack(fill="both", expand=True)
+    canvas.draw()
 
 def show_graph():
-    global actual
-    esconder()
+    esconder() 
     G = CreateGraph_1()
     fig, ax = plt.subplots(figsize=(5, 5))
     Plot(G)
     ax.set_title("Gráfico de Ejemplo")
 
-    canvas = FigureCanvasTkAgg(fig, master=window)
-    canvas.get_tk_widget().pack()
-    canvas.draw()
-    actual = canvas
+    fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, G))
 
-btn_show_graph = tk.Button(window, text="Gráfico Ejemplo", command=show_graph)
-btn_show_graph.pack(pady=10)
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.get_tk_widget().pack(fill="both", expand=True)
+    canvas.draw()
 
 def load_graph():
-    global actual
     esconder()
     D = Data('datos.txt')
     fig, ax = plt.subplots(figsize=(5, 5))
     Plot(D)
     ax.set_title("Gráfico Inventado")
 
-    canvas = FigureCanvasTkAgg(fig, master=window)
-    canvas.get_tk_widget().pack()
-    canvas.draw()
-    actual = canvas
+    fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, D))
 
-btn_load_graph = tk.Button(window, text="Gráfico Inventado", command=load_graph)
-btn_load_graph.pack(pady=10)
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.get_tk_widget().pack(fill="both", expand=True)
+    canvas.draw()
 
 def file_graph():
-    global actual
-    esconder()
+    esconder()  
     filename = filedialog.askopenfilename(filetypes=[("Archivos de texto", "*.txt")])
     F = Data(filename)
     fig, ax = plt.subplots(figsize=(5, 5))
     Plot(F)
     ax.set_title("Gráfico Cargado")
 
-    canvas = FigureCanvasTkAgg(fig, master=window)
-    canvas.get_tk_widget().pack()
+    fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, F))
+
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.get_tk_widget().pack(fill="both", expand=True)
     canvas.draw()
-    actual = canvas
 
-btn_file_graph = tk.Button(window, text="Gráfico cargado", command=file_graph)
-btn_file_graph.pack(pady=10)
+btn_show_graph = tk.Button(button_frame, text="Gráfico Ejemplo", command=show_graph)
+btn_show_graph.pack(side="left", padx=5)
 
-def update_node_dropdown():
-    global actual
-    if actual:
-        node_names = [node.name for node in actual.node]  # Obtén los nombres de los nodos
-        node_var.set("")  # Resetea la selección actual
-        menu = node_dropdown['menu']
-        menu.delete(0, 'end')  # Elimina las opciones anteriores
-        for name in node_names:
-            menu.add_command(label=name, command=tk._setit(node_var, name))
+btn_load_graph = tk.Button(button_frame, text="Gráfico Inventado", command=load_graph)
+btn_load_graph.pack(side="left", padx=5)
 
-def show_neighbors():
-    if not actual:
-        messagebox.showwarning("Warning", "No hay un grafico")
-        return
+btn_file_graph = tk.Button(button_frame, text="Gráfico Cargado", command=file_graph)
+btn_file_graph.pack(side="left", padx=5)
 
-    node_name = node_var.get()
-    if not node_name:
-        messagebox.showwarning("Warning", "Selecciona un nodo")
-        return
-
-    selected_node = next((node for node in actual.node if node.name == node_name), None)
-    if selected_node:
-        neighbors = [n.name for n in selected_node.neighbors]
-        neighbor_text = ", ".join(neighbors) if neighbors else "No tiene vecinos"
-        messagebox.showinfo("Vecinos", f"Vecinos de {node_name}: {neighbor_text}")
-
-node_label = tk.Label(window, text="Selecciona un nodo:")
-node_label.pack(pady=5)
-node_var = tk.StringVar(window)
-node_dropdown = tk.OptionMenu(window, node_var, ())
-node_dropdown.pack(pady=5)
-
-btn_show_neighbors = tk.Button(window, text="Mostrar vecinos", command=show_neighbors)
-btn_show_neighbors.pack(pady=10)
+btn_show_neighbors = tk.Button(button_frame, text="Mostrar vecinos", command=show_neighbors)
+btn_show_neighbors.pack(side="left", padx=5)
 
 window.mainloop()
-
-
